@@ -91,17 +91,22 @@ fetchSubRef = (ref, ...rest) => {
 */
 const fetchRefs = structure => {
   // Deconstruct the refs structure to retrieve the fetch promise, the entity to target and the sub structure if present
-  const { func: fetch, entity, refs: subRefs } = structure
+  const { func, entity, refs: subRefs } = structure
+
+  if (typeof func !== 'function') {
+    warning(`the func of entity ${entity} is not a function`)
+    return
+  }
 
   // Fetch the root result
   if (subRefs) {
     // Get the result entity
-    fetch().then(({ [entity]: rootObject }) => {
+    func().then(({ [entity]: rootObject }) => {
       // Fetch entities for each sub-references
       fetchSubRefs(subRefs, rootObject)
     })
   } else {
-    fetch()
+    func()
   }
 }
 

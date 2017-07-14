@@ -2,6 +2,9 @@ import { debounce, uniqWith } from 'lodash'
 import fetchRefs from './referenceFetcher'
 
 describe('FetchRefs util', () => {
+  // Mocking console error function
+  global.console.error = jest.fn()
+
   const parcels = [
     { id: 'parcel_01', name: 'parcel_01', address: 'address_01', collect: 'collect_01' },
     { id: 'parcel_02', name: 'parcel_02', address: 'address_02', collect: 'collect_02' },
@@ -11,6 +14,12 @@ describe('FetchRefs util', () => {
   const parcelsPromise = () => new Promise(resolve => resolve({ action: 'getParcel', parcels }))
   const subObjectPromise = (id, entity) => new Promise(resolve => resolve({ action: 'getSmthg',
     [entity]: entityFactory(id) }))
+  const wrongPromiseResolve = () => new Promise(resolve => resolve({ action: 'getParcel', parcels: { } }))
+
+  const wrongConfig = () => ({
+    entity: 'parcels',
+    func: 'Not a function',
+  })
 
   const oneLevelConfig = callback => ({
     entity: 'parcels',
@@ -104,5 +113,9 @@ describe('FetchRefs util', () => {
     }
 
     fetchRefs(threeLevelConfig(registerCallback1, registerCallback2))
+  })
+  it('Calls the error function when the func givent is not a function', () => {
+    fetchRefs(wrongConfig)
+    expect(console.error).toBeCalled()
   })
 })
