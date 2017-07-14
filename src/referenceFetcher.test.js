@@ -92,7 +92,8 @@ describe('FetchRefs util', () => {
     }
     const store2 = []
     const callback2 = () => {
-      const uniqAddresses = uniqWith(parcels.map(parcel => [parcel.id, parcel.address, 'user_02']), (a, b) => a[2] === b[2])
+      const uniqAddresses = uniqWith(parcels.map(parcel =>
+        [parcel.id, parcel.address, 'user_02']), (a, b) => a[2] === b[2])
       expect(store2).toEqual(uniqAddresses)
       done()
     }

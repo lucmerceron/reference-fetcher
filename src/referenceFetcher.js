@@ -1,10 +1,12 @@
 import { isArray, isObject } from 'lodash'
+import warning from './util/warning'
 
 const refsRetrieved = {}
 let fetchSubRef = () => {}
 
 const entityAlreadyFetched = (entity, id) => refsRetrieved[entity] && refsRetrieved[entity][id]
-const registerNewEntity = (entity, id) => (refsRetrieved[entity] = Object.assign({}, refsRetrieved[entity], { [id]: true }))
+const registerNewEntity = (entity, id) =>
+  (refsRetrieved[entity] = Object.assign({}, refsRetrieved[entity], { [id]: true }))
 
 /*
 * fetchSubRefs just loops on the refs array and calls fetchSubRef for each unique referenceId
@@ -49,7 +51,7 @@ fetchSubRef = (ref, ...rest) => {
   if (!isArray(parentObject) && isObject(parentObject)) {
     parentObject = [parentObject]
   } else if (!isArray(parentObject)) {
-    console.warn('the promise action given to fetchRefs util is not returning the correct entity ', entity)
+    warning(`the promise action given to referenceFetcher is not returning the correct entity ${entity}`)
     return
   }
 

@@ -3,7 +3,9 @@
   "version": "0.0.0-semantically-released",
   "description": "Simple and easy entity references fetcher",
   "main": "dist/index.js",
-  "dependencies": {},
+  "dependencies": {
+    "lodash": "^4.17.4"
+  },
   "devDependencies": {
     "babel-cli": "^6.24.1",
     "babel-core": "^6.25.0",
@@ -16,9 +18,11 @@
     "cz-conventional-changelog": "^2.0.0",
     "eslint": "^4.2.0",
     "eslint-config-airbnb": "^15.0.2",
+    "eslint-config-defaults": "^9.0.0",
     "eslint-plugin-import": "^2.7.0",
     "eslint-plugin-jasmine": "^2.7.1",
     "eslint-plugin-jest": "^20.0.3",
+    "eslint-plugin-node": "^5.1.0",
     "istanbul": "^0.4.5",
     "jest": "^20.0.4",
     "jest-babel-istanbul": "^0.1.0",
@@ -27,7 +31,7 @@
     "semantic-release-cli": "^3.0.3"
   },
   "scripts": {
-    "lint": "eslint ./src ./docs/src",
+    "lint": "eslint ./src",
     "commit": "git-cz",
     "check-coverage": "istanbul check-coverage --statements 90 --branches 90 --functions 90 --lines 90",
     "report-coverage": "cat ./coverage/lcov.info | codecov",
