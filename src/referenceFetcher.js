@@ -12,17 +12,8 @@ const registerNewEntity = (entity, id) =>
 * fetchSubRefs just loops on the refs array and calls fetchSubRef for each unique referenceId
 */
 const fetchSubRefs = (subRefs, ...rest) => {
-  const parentObject = rest.length > 0 ? rest[rest.length - 1] : []
   subRefs.forEach(ref => {
-    const { entity: refEntity } = ref
-    if (isArray(parentObject)) fetchSubRef(ref, ...rest)
-    else {
-      const refId = parentObject[refEntity]
-      if (!entityAlreadyFetched(refEntity, refId)) {
-        registerNewEntity(refEntity, refId)
-        fetchSubRef(ref, ...rest)
-      }
-    }
+    fetchSubRef(ref, ...rest)
   })
 }
 
@@ -58,7 +49,7 @@ fetchSubRef = (ref, ...rest) => {
     return
   }
 
-  // If batch, we need to give the array of ids to fetchEnhanced
+  // If batch is set to true, we need to give the array of ids directly to fetchEnhanced
   if (batch) {
     const entityIds = []
     // Launch the fetch for each uniq object
