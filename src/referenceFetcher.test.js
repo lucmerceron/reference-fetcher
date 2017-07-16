@@ -84,7 +84,7 @@ describe('FetchRefs util', () => {
     }],
   })
 
-  const noCacheConfig = (callback1, callback2) => ({
+  const noCacheConfig = (callback1, callback2, callback3) => ({
     entity: 'parcels',
     func: parcelsPromise,
     refs: [{
@@ -103,10 +103,17 @@ describe('FetchRefs util', () => {
         entity: 'address',
         noCache: true,
         func: addressId => {
-          callback2(addressId)
+          callback3(addressId)
           return subObjectPromise(addressId, 'address')
         },
       }],
+    }, {
+      entity: 'address',
+      noCache: true,
+      func: addressId => {
+        callback2(addressId)
+        return subObjectPromise(addressId, 'address')
+      },
     }],
   })
 
@@ -120,7 +127,7 @@ describe('FetchRefs util', () => {
   it('Calls func & sub-func with two levels of configuration', done => {
     const store = []
     const callback = () => {
-      const uniqCollects = uniqWith(parcels.map(parcel => parcel.collect), (a, b) => a[1] === b[1])
+      const uniqCollects = uniqWith(parcels.map(parcel => parcel.collect), (a, b) => a === b)
       expect(store).toEqual(uniqCollects)
       done()
     }
@@ -134,7 +141,7 @@ describe('FetchRefs util', () => {
   it('Calls func & sub-funcs with three levels of configuration', done => {
     const store1 = []
     const callback1 = () => {
-      const uniqAddresses = uniqWith(parcels.map(parcel => parcel.address), (a, b) => a[1] === b[1])
+      const uniqAddresses = uniqWith(parcels.map(parcel => parcel.address), (a, b) => a === b)
       expect(store1).toEqual(uniqAddresses)
       // done()
     }
@@ -145,7 +152,7 @@ describe('FetchRefs util', () => {
     }
     const store2 = []
     const callback2 = () => {
-      expect(store2).toEqual('user_02')
+      expect(store2).toEqual(['user_02'])
       done()
     }
     const debounceCallback2 = debounce(callback2, 10)
@@ -158,7 +165,7 @@ describe('FetchRefs util', () => {
   })
   it('Calls sub-func with an array when batch asked', done => {
     const callback = statsIds => {
-      const uniqStats = uniqWith(parcels.map(parcel => parcel.stats), (a, b) => a[1] === b[1])
+      const uniqStats = uniqWith(parcels.map(parcel => parcel.stats), (a, b) => a === b)
       expect(statsIds).toEqual(uniqStats)
       done()
     }
@@ -167,13 +174,13 @@ describe('FetchRefs util', () => {
   })
   it('Calls sub-func with the full array when no-cache asked', done => {
     const callback1 = addressesId => {
-      const uniqAddresses = uniqWith(parcels.map(parcel => parcel.address), (a, b) => a[1] === b[1])
+      const uniqAddresses = uniqWith(parcels.map(parcel => parcel.address), (a, b) => a === b)
       expect(addressesId).toEqual(uniqAddresses)
       // done()
     }
     const store2 = []
     const callback2 = () => {
-      const uniqAddresses = uniqWith(parcels.map(parcel => parcel.address), (a, b) => a[2] !== b[2])
+      const uniqAddresses = uniqWith(parcels.map(parcel => parcel.address), (a, b) => a === b)
       expect(store2).toEqual(uniqAddresses)
       done()
     }
@@ -182,8 +189,11 @@ describe('FetchRefs util', () => {
       store2.push(data)
       debounceCallback2()
     }
+    const callback3 = jest.fn()
 
-    fetchRefs(noCacheConfig(callback1, registerCallback2))
+    expect(callback3).not.toBeCalled()
+
+    fetchRefs(noCacheConfig(callback1, registerCallback2, callback3))
   })
   it('Calls the error function when the func given is not a function', () => {
     fetchRefs(wrongConfig)

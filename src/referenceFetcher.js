@@ -11,9 +11,9 @@ const registerNewEntity = (entity, id) =>
 /*
 * fetchSubRefs just loops on the refs array and calls fetchSubRef for each unique referenceId
 */
-const fetchSubRefs = (subRefs, ...rest) => {
+const fetchSubRefs = (subRefs, parentObject) => {
   subRefs.forEach(ref => {
-    fetchSubRef(ref, ...rest)
+    fetchSubRef(ref, parentObject)
   })
 }
 
@@ -21,24 +21,20 @@ const fetchSubRefs = (subRefs, ...rest) => {
 * Take a ref, the parentObject and priorIds (if existing) to fetch on the referenced entity.
 * It will also go deeper if subRefs are presents
 */
-fetchSubRef = (ref, ...rest) => {
+fetchSubRef = (ref, parentObject) => {
   // Deconstruct the refs structure to retrieve the fetch promise, the entity to target and the sub structure if present
   const { func: fetch, entity, refs: subRefs, batch, noCache, relationName } = ref
-  // The parent object represent the last object fetched
-  let parentObject = rest[rest.length - 1]
-  // PriorIds is used to give to our fetch func the context as parameters (parcelId, addressId, userId) => ...
-  const priorIds = rest.length > 1 ? rest.slice(0, rest.length - 1) : []
   // The name of the relation in the parent object
   const relation = relationName || entity
 
   // Prepare the fetch call
-  let fetchEnhanced = (parentId, currentId) => fetch.apply(null, [...priorIds, parentId, currentId])
+  let fetchEnhanced = currentId => fetch(currentId)
 
   // Fetch call for with recursiveness (sub-references)
   if (subRefs) {
-    fetchEnhanced = (parentId, currentId) =>
-      fetch.apply(null, [...priorIds, parentId, currentId]).then(({ [entity]: rootObject }) => {
-        fetchSubRefs(subRefs, ...[...priorIds, parentId, rootObject])
+    fetchEnhanced = currentId =>
+      fetch(currentId).then(({ [entity]: rootObject }) => {
+        fetchSubRefs(subRefs, rootObject)
       })
   }
 
@@ -54,11 +50,13 @@ fetchSubRef = (ref, ...rest) => {
   // If batch is set to true, we need to give the array of ids directly to fetchEnhanced
   if (batch) {
     const entityIds = []
-    const parentIds = []
     // Launch the fetch for each uniq object
     parentObject.forEach(object => {
-      const { id: parentId, [relation]: currentId } = object
-      parentIds.push(parentId)
+      const { [relation]: currentId } = object
+      if (!currentId) {
+        warning(`the relation ${relation} could not be found in object ${object.id}`)
+        return
+      }
       if (!entityAlreadyFetched(relation, currentId)) {
         registerNewEntity(relation, currentId)
         entityIds.push(currentId)
@@ -66,16 +64,20 @@ fetchSubRef = (ref, ...rest) => {
         entityIds.push(currentId)
       }
     })
-    fetchEnhanced(parentIds, entityIds)
+    fetchEnhanced(entityIds)
   } else {
     // Launch the fetch for each uniq object
     parentObject.forEach(object => {
-      const { id: parentId, [relation]: currentId } = object
+      const { [relation]: currentId } = object
+      if (!currentId) {
+        warning(`the relation ${relation} could not be found in object ${object.id}`)
+        return
+      }
       if (!entityAlreadyFetched(relation, currentId)) {
         registerNewEntity(relation, currentId)
-        fetchEnhanced(parentId, currentId)
+        fetchEnhanced(currentId)
       } else if (noCache) {
-        fetchEnhanced(parentId, currentId)
+        fetchEnhanced(currentId)
       }
     })
   }
