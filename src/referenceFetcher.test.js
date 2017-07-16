@@ -114,6 +114,13 @@ describe('FetchRefs util', () => {
         callback2(addressId)
         return subObjectPromise(addressId, 'address')
       },
+    }, {
+      entity: 'address',
+      // noCache: true,
+      func: addressId => { // Should not be called as already fetched
+        callback3(addressId)
+        return subObjectPromise(addressId, 'address')
+      },
     }],
   })
 
@@ -178,22 +185,31 @@ describe('FetchRefs util', () => {
       expect(addressesId).toEqual(uniqAddresses)
       // done()
     }
+    const store3 = []
+    const callback3 = () => {
+      expect(store3).toEqual([null])
+      done()
+    }
+    const debounceCallback3 = debounce(callback3, 100)
+    const registerCallback3 = data => {
+      store3.push(data)
+      debounceCallback3()
+    }
     const store2 = []
     const callback2 = () => {
       const uniqAddresses = uniqWith(parcels.map(parcel => parcel.address), (a, b) => a === b)
       expect(store2).toEqual(uniqAddresses)
-      done()
+      // done()
+      // Launch register3 as it should not be called and we test its store
+      registerCallback3(null)
     }
     const debounceCallback2 = debounce(callback2, 10)
     const registerCallback2 = data => {
       store2.push(data)
       debounceCallback2()
     }
-    const callback3 = jest.fn()
 
-    expect(callback3).not.toBeCalled()
-
-    fetchRefs(noCacheConfig(callback1, registerCallback2, callback3))
+    fetchRefs(noCacheConfig(callback1, registerCallback2, registerCallback3))
   })
   it('Calls the error function when the func given is not a function', () => {
     fetchRefs(wrongConfig)
