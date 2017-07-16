@@ -15,6 +15,7 @@ npm install --save reference-fetcher
 ReferenceFetcher is an algorithm useful for retrieving multiple referenced entity from a database.
 
 Imagine we have this kind of database:
+
 ![Reddit Base](./reddit.png)
 
 Posts is the key database table here. A post has 3 references; a tag, a creator and a subreddit which correspond to IDs that we can find in the corresponding database tables.

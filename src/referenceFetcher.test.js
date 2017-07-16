@@ -36,8 +36,8 @@ describe('FetchRefs util', () => {
     func: parcelsPromise,
     refs: [{
       entity: 'collect',
-      func: (parcelId, collectId) => {
-        callback([parcelId, collectId])
+      func: collectId => {
+        callback(collectId)
         return subObjectPromise(collectId, 'collect')
       },
     }],
@@ -48,20 +48,20 @@ describe('FetchRefs util', () => {
     func: parcelsPromise,
     refs: [{
       entity: 'collect',
-      func: (parcelId, collectId) => subObjectPromise(collectId, 'collect'),
+      func: collectId => subObjectPromise(collectId, 'collect'),
     }, {
       entity: 'address',
-      func: (parcelId, addressId) => {
-        callback1([parcelId, addressId])
+      func: addressId => {
+        callback1(addressId)
         return subObjectPromise(addressId, 'address')
       },
       refs: [{
         entity: 'org',
-        func: (parcelId, addressId, orgId) => subObjectPromise(orgId, 'org'),
+        func: orgId => subObjectPromise(orgId, 'org'),
       }, {
         entity: 'user',
-        func: (parcelId, addressId, userId) => {
-          callback2([parcelId, addressId, userId])
+        func: userId => {
+          callback2(userId)
           return subObjectPromise(userId, 'user')
         },
       }],
@@ -73,12 +73,12 @@ describe('FetchRefs util', () => {
     func: parcelsPromise,
     refs: [{
       entity: 'collect',
-      func: (parcelId, collectId) => subObjectPromise(collectId, 'collect'),
+      func: collectId => subObjectPromise(collectId, 'collect'),
     }, {
       entity: 'stats',
       batch: true,
-      func: (parcelId, statsIds) => {
-        callback([parcelId, statsIds])
+      func: statsIds => {
+        callback(statsIds)
         return subArrayPromise(statsIds, 'stats')
       },
     }],
@@ -89,21 +89,21 @@ describe('FetchRefs util', () => {
     func: parcelsPromise,
     refs: [{
       entity: 'address',
-      func: (parcelId, addressId) => subObjectPromise(addressId, 'address'),
+      func: addressId => subObjectPromise(addressId, 'address'),
     }, {
       entity: 'addresses',
       relationName: 'address',
       batch: true,
       noCache: true,
-      func: (parcelId, addressesIds) => {
-        callback1([parcelId, addressesIds])
+      func: addressesIds => {
+        callback1(addressesIds)
         return subArrayPromise(addressesIds, 'addresses')
       },
       refs: [{
         entity: 'address',
         noCache: true,
-        func: (parcelId, addressId) => {
-          callback2([parcelId, addressId])
+        func: addressId => {
+          callback2(addressId)
           return subObjectPromise(addressId, 'address')
         },
       }],
@@ -120,7 +120,7 @@ describe('FetchRefs util', () => {
   it('Calls func & sub-func with two levels of configuration', done => {
     const store = []
     const callback = () => {
-      const uniqCollects = uniqWith(parcels.map(parcel => [parcel.id, parcel.collect]), (a, b) => a[1] === b[1])
+      const uniqCollects = uniqWith(parcels.map(parcel => parcel.collect), (a, b) => a[1] === b[1])
       expect(store).toEqual(uniqCollects)
       done()
     }
@@ -134,7 +134,7 @@ describe('FetchRefs util', () => {
   it('Calls func & sub-funcs with three levels of configuration', done => {
     const store1 = []
     const callback1 = () => {
-      const uniqAddresses = uniqWith(parcels.map(parcel => [parcel.id, parcel.address]), (a, b) => a[1] === b[1])
+      const uniqAddresses = uniqWith(parcels.map(parcel => parcel.address), (a, b) => a[1] === b[1])
       expect(store1).toEqual(uniqAddresses)
       // done()
     }
@@ -145,9 +145,7 @@ describe('FetchRefs util', () => {
     }
     const store2 = []
     const callback2 = () => {
-      const uniqAddresses = uniqWith(parcels.map(parcel =>
-        [parcel.id, parcel.address, 'user_02']), (a, b) => a[2] === b[2])
-      expect(store2).toEqual(uniqAddresses)
+      expect(store2).toEqual('user_02')
       done()
     }
     const debounceCallback2 = debounce(callback2, 10)
@@ -160,8 +158,8 @@ describe('FetchRefs util', () => {
   })
   it('Calls sub-func with an array when batch asked', done => {
     const callback = statsIds => {
-      const uniqStats = uniqWith(parcels.map(parcel => parcel.stats, (a, b) => a[1] === b[1]))
-      expect(statsIds).toEqual([parcels.map(parcel => parcel.id), uniqStats])
+      const uniqStats = uniqWith(parcels.map(parcel => parcel.stats), (a, b) => a[1] === b[1])
+      expect(statsIds).toEqual(uniqStats)
       done()
     }
 
@@ -169,15 +167,13 @@ describe('FetchRefs util', () => {
   })
   it('Calls sub-func with the full array when no-cache asked', done => {
     const callback1 = addressesId => {
-      const uniqAddresses = uniqWith(parcels.map(parcel => parcel.address, (a, b) => a[1] === b[1]))
-      expect(addressesId).toEqual([parcels.map(parcel => parcel.id), uniqAddresses])
+      const uniqAddresses = uniqWith(parcels.map(parcel => parcel.address), (a, b) => a[1] === b[1])
+      expect(addressesId).toEqual(uniqAddresses)
       // done()
     }
     const store2 = []
     const callback2 = () => {
-      const parcelIds = parcels.map(parcel => parcel.id)
-      const uniqAddresses = uniqWith(parcels.map(parcel =>
-        [parcelIds, parcel.address]), (a, b) => a[2] !== b[2])
+      const uniqAddresses = uniqWith(parcels.map(parcel => parcel.address), (a, b) => a[2] !== b[2])
       expect(store2).toEqual(uniqAddresses)
       done()
     }
@@ -189,7 +185,7 @@ describe('FetchRefs util', () => {
 
     fetchRefs(noCacheConfig(callback1, registerCallback2))
   })
-  it('Calls the error function when the func givent is not a function', () => {
+  it('Calls the error function when the func given is not a function', () => {
     fetchRefs(wrongConfig)
     expect(console.error).toBeCalled()
   })
