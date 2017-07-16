@@ -68,7 +68,7 @@ describe('FetchRefs util', () => {
     }],
   })
 
-  const arrayConfig = (callback) => ({
+  const batchConfig = (callback) => ({
     entity: 'parcels',
     func: parcelsPromise,
     refs: [{
@@ -165,7 +165,7 @@ describe('FetchRefs util', () => {
       done()
     }
 
-    fetchRefs(arrayConfig(callback))
+    fetchRefs(batchConfig(callback))
   })
   it('Calls sub-func with the full array when no-cache asked', done => {
     const callback1 = addressesId => {
