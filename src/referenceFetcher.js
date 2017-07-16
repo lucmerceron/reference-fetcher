@@ -23,11 +23,13 @@ const fetchSubRefs = (subRefs, ...rest) => {
 */
 fetchSubRef = (ref, ...rest) => {
   // Deconstruct the refs structure to retrieve the fetch promise, the entity to target and the sub structure if present
-  const { func: fetch, entity, refs: subRefs, batch } = ref
+  const { func: fetch, entity, refs: subRefs, batch, noCache, relationName } = ref
   // The parent object represent the last object fetched
   let parentObject = rest[rest.length - 1]
   // PriorIds is used to give to our fetch func the context as parameters (parcelId, addressId, userId) => ...
   const priorIds = rest.length > 1 ? rest.slice(0, rest.length - 1) : []
+  // The name of the relation in the parent object
+  const relation = relationName || entity
 
   // Prepare the fetch call
   let fetchEnhanced = (parentId, currentId) => fetch.apply(null, [...priorIds, parentId, currentId])
@@ -45,28 +47,34 @@ fetchSubRef = (ref, ...rest) => {
   if (!isArray(parentObject) && isObject(parentObject)) {
     parentObject = [parentObject]
   } else if (!isArray(parentObject)) {
-    warning(`the promise action given to referenceFetcher is not returning the correct entity ${entity}`)
+    warning(`the promise action given to referenceFetcher is not returning the correct entity ${relation}`)
     return
   }
 
   // If batch is set to true, we need to give the array of ids directly to fetchEnhanced
   if (batch) {
     const entityIds = []
+    const parentIds = []
     // Launch the fetch for each uniq object
     parentObject.forEach(object => {
-      const { [entity]: currentId } = object
-      if (!entityAlreadyFetched(entity, currentId)) {
-        registerNewEntity(entity, currentId)
+      const { id: parentId, [relation]: currentId } = object
+      parentIds.push(parentId)
+      if (!entityAlreadyFetched(relation, currentId)) {
+        registerNewEntity(relation, currentId)
+        entityIds.push(currentId)
+      } else if (noCache) {
         entityIds.push(currentId)
       }
     })
-    fetchEnhanced(null, entityIds)
+    fetchEnhanced(parentIds, entityIds)
   } else {
     // Launch the fetch for each uniq object
     parentObject.forEach(object => {
-      const { id: parentId, [entity]: currentId } = object
-      if (!entityAlreadyFetched(entity, currentId)) {
-        registerNewEntity(entity, currentId)
+      const { id: parentId, [relation]: currentId } = object
+      if (!entityAlreadyFetched(relation, currentId)) {
+        registerNewEntity(relation, currentId)
+        fetchEnhanced(parentId, currentId)
+      } else if (noCache) {
         fetchEnhanced(parentId, currentId)
       }
     })
