@@ -39,11 +39,12 @@ const configuration = {
     func: subredditId => getSubreddit(subredditId),
   }, {
     entity: 'subscribers',
-    relationName: 'subscriber',
+    relationName: 'creator',
     batch: true,
     func: subscribersIds => getSubscribers(subscribersIds),
     refs: [{
       entity: 'stats',
+      relationName: 'stat',
       batch: true,
       func: getStats,
     }]
