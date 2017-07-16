@@ -2,7 +2,7 @@ import { debounce, uniqWith } from 'lodash'
 import fetchRefs from './referenceFetcher'
 
 describe('FetchRefs util', () => {
-  // Mocking console error function
+  // Mocking console error fetchtion
   global.console.error = jest.fn()
 
   const parcels = [
@@ -20,12 +20,12 @@ describe('FetchRefs util', () => {
 
   const wrongConfig = () => ({
     entity: 'parcels',
-    func: 'Not a function',
+    fetch: 'Not a fetchtion',
   })
 
   const oneLevelConfig = callback => ({
     entity: 'parcels',
-    func: () => {
+    fetch: () => {
       callback('parcels')
       return parcelsPromise()
     },
@@ -33,10 +33,10 @@ describe('FetchRefs util', () => {
 
   const twoLevelConfig = callback => ({
     entity: 'parcels',
-    func: parcelsPromise,
+    fetch: parcelsPromise,
     refs: [{
       entity: 'collect',
-      func: collectId => {
+      fetch: collectId => {
         callback(collectId)
         return subObjectPromise(collectId, 'collect')
       },
@@ -45,22 +45,22 @@ describe('FetchRefs util', () => {
 
   const threeLevelConfig = (callback1, callback2) => ({
     entity: 'parcels',
-    func: parcelsPromise,
+    fetch: parcelsPromise,
     refs: [{
       entity: 'collect',
-      func: collectId => subObjectPromise(collectId, 'collect'),
+      fetch: collectId => subObjectPromise(collectId, 'collect'),
     }, {
       entity: 'address',
-      func: addressId => {
+      fetch: addressId => {
         callback1(addressId)
         return subObjectPromise(addressId, 'address')
       },
       refs: [{
         entity: 'org',
-        func: orgId => subObjectPromise(orgId, 'org'),
+        fetch: orgId => subObjectPromise(orgId, 'org'),
       }, {
         entity: 'user',
-        func: userId => {
+        fetch: userId => {
           callback2(userId)
           return subObjectPromise(userId, 'user')
         },
@@ -70,14 +70,14 @@ describe('FetchRefs util', () => {
 
   const batchConfig = (callback) => ({
     entity: 'parcels',
-    func: parcelsPromise,
+    fetch: parcelsPromise,
     refs: [{
       entity: 'collect',
-      func: collectId => subObjectPromise(collectId, 'collect'),
+      fetch: collectId => subObjectPromise(collectId, 'collect'),
     }, {
       entity: 'stats',
       batch: true,
-      func: statsIds => {
+      fetch: statsIds => {
         callback(statsIds)
         return subArrayPromise(statsIds, 'stats')
       },
@@ -86,23 +86,23 @@ describe('FetchRefs util', () => {
 
   const noCacheConfig = (callback1, callback2, callback3) => ({
     entity: 'parcels',
-    func: parcelsPromise,
+    fetch: parcelsPromise,
     refs: [{
       entity: 'address',
-      func: addressId => subObjectPromise(addressId, 'address'),
+      fetch: addressId => subObjectPromise(addressId, 'address'),
     }, {
       entity: 'addresses',
       relationName: 'address',
       batch: true,
       noCache: true,
-      func: addressesIds => {
+      fetch: addressesIds => {
         callback1(addressesIds)
         return subArrayPromise(addressesIds, 'addresses')
       },
       refs: [{
         entity: 'address',
         noCache: true,
-        func: addressId => {
+        fetch: addressId => {
           callback3(addressId)
           return subObjectPromise(addressId, 'address')
         },
@@ -110,28 +110,28 @@ describe('FetchRefs util', () => {
     }, {
       entity: 'address',
       noCache: true,
-      func: addressId => {
+      fetch: addressId => {
         callback2(addressId)
         return subObjectPromise(addressId, 'address')
       },
     }, {
       entity: 'address',
       // noCache: true,
-      func: addressId => { // Should not be called as already fetched
+      fetch: addressId => { // Should not be called as already fetched
         callback3(addressId)
         return subObjectPromise(addressId, 'address')
       },
     }],
   })
 
-  it('Calls the func with one level of configuration', done => {
+  it('Calls the fetch with one level of configuration', done => {
     const callback = data => {
       expect(data).toBe('parcels')
       done()
     }
     fetchRefs(oneLevelConfig(callback))
   })
-  it('Calls func & sub-func with two levels of configuration', done => {
+  it('Calls fetch & sub-fetch with two levels of configuration', done => {
     const store = []
     const callback = () => {
       const uniqCollects = uniqWith(parcels.map(parcel => parcel.collect), (a, b) => a === b)
@@ -145,7 +145,7 @@ describe('FetchRefs util', () => {
     }
     fetchRefs(twoLevelConfig(registerCallback))
   })
-  it('Calls func & sub-funcs with three levels of configuration', done => {
+  it('Calls fetch & sub-fetchs with three levels of configuration', done => {
     const store1 = []
     const callback1 = () => {
       const uniqAddresses = uniqWith(parcels.map(parcel => parcel.address), (a, b) => a === b)
@@ -170,7 +170,7 @@ describe('FetchRefs util', () => {
 
     fetchRefs(threeLevelConfig(registerCallback1, registerCallback2))
   })
-  it('Calls sub-func with an array when batch asked', done => {
+  it('Calls sub-fetch with an array when batch asked', done => {
     const callback = statsIds => {
       const uniqStats = uniqWith(parcels.map(parcel => parcel.stats), (a, b) => a === b)
       expect(statsIds).toEqual(uniqStats)
@@ -179,7 +179,7 @@ describe('FetchRefs util', () => {
 
     fetchRefs(batchConfig(callback))
   })
-  it('Calls sub-func with the full array when no-cache asked', done => {
+  it('Calls sub-fetch with the full array when no-cache asked', done => {
     const callback1 = addressesId => {
       const uniqAddresses = uniqWith(parcels.map(parcel => parcel.address), (a, b) => a === b)
       expect(addressesId).toEqual(uniqAddresses)
@@ -211,7 +211,7 @@ describe('FetchRefs util', () => {
 
     fetchRefs(noCacheConfig(callback1, registerCallback2, registerCallback3))
   })
-  it('Calls the error function when the func given is not a function', () => {
+  it('Calls the error fetchtion when the fetch given is not a fetchtion', () => {
     fetchRefs(wrongConfig)
     expect(console.error).toBeCalled()
   })

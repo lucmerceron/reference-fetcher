@@ -11,7 +11,7 @@ const registerNewEntity = (entity, id) => {
 }
 
 /*
-* fetchSubRefs just loops on the refs array and calls fetchSubRef for each unique referenceId
+* fetchSubRefs simply loops on the subRefs array and calls fetchSubRef
 */
 const fetchSubRefs = (subRefs, parentObject) => {
   subRefs.forEach(ref => {
@@ -20,18 +20,18 @@ const fetchSubRefs = (subRefs, parentObject) => {
 }
 
 /*
-* Take a ref and the parentObject to fetch on the referenced entity.
-* It will also go deeper if subRefs are presents
+* Take the ref and the parentObject to fetch on the referenced entity.
+* Will also fetch subRefs if presents
 */
 fetchSubRef = (ref, parentObject) => {
   // Deconstruct the refs structure to retrieve the fetch promise, the entity to target and the sub structure if present
-  const { func: fetch, entity, refs: subRefs, batch, noCache, relationName } = ref
+  const { fetch, entity, relationName, refs: subRefs, batch, noCache } = ref
   // The name of the relation in the parent object
   const relation = relationName || entity
 
   // Prepare the fetch call
   let fetchEnhanced = currentId => fetch(currentId)
-  // Fetch call for with recursiveness (underneath references)
+  // Fetch call with recursiveness for underneath references
   if (subRefs) {
     fetchEnhanced = currentId =>
       fetch(currentId).then(({ [entity]: rootObject }) => {
@@ -39,8 +39,8 @@ fetchSubRef = (ref, parentObject) => {
       })
   }
 
-  // If the parentObject is an object without being an Array
-  // transform it so it is computed as an array
+  // If the parentObject is not an array,
+  // transform it for generic usage
   if (!isArray(parentObject) && isObject(parentObject)) {
     parentObject = [parentObject]
   }
@@ -53,32 +53,34 @@ fetchSubRef = (ref, parentObject) => {
       warning(`the relation ${relation} could not be found in object ${object.id}`)
       return
     }
+    // The noCache is used to ask for a fetch call even if entity id
+    // already fetched, but does not avoid registering the entity
     if (registerNewEntity(relation, currentId) || noCache) {
       idsToFetch.push(currentId)
     }
   })
-  // If batch is set to true, we need to give the array of ids directly to fetchEnhanced
+
+  // We want the batch call or enjoy HTTP2 lightning speed
   if (batch) fetchEnhanced(idsToFetch)
   else idsToFetch.forEach(id => fetchEnhanced(id))
 }
 
 const fetchRefs = structure => {
-  // Deconstruct the refs structure to retrieve the fetch promise, the entity to target and the sub structure if present
-  const { func, entity, refs: subRefs } = structure
-  if (typeof func !== 'function') {
-    warning(`the func of entity ${entity} is not a function`)
+  const { fetch, entity, refs: subRefs } = structure
+  if (typeof fetch !== 'function') {
+    warning(`the fetch of entity ${entity} is not a function`)
     return
   }
 
   // Fetch the root result
   if (subRefs && subRefs.length > 0) {
     // Get the result entity
-    func().then(({ [entity]: rootObject }) => {
+    fetch().then(({ [entity]: rootObject }) => {
       // Fetch entities for each sub-references
       fetchSubRefs(subRefs, rootObject)
     })
   } else {
-    func()
+    fetch()
   }
 }
 
