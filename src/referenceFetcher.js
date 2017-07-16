@@ -12,13 +12,16 @@ const registerNewEntity = (entity, id) =>
 * fetchSubRefs just loops on the refs array and calls fetchSubRef for each unique referenceId
 */
 const fetchSubRefs = (subRefs, ...rest) => {
-  const parentObject = rest.length > 1 ? rest[rest.length - 1] : []
+  const parentObject = rest.length > 0 ? rest[rest.length - 1] : []
   subRefs.forEach(ref => {
     const { entity: refEntity } = ref
-    const refId = parentObject[refEntity]
-    if (!entityAlreadyFetched(refEntity, refId)) {
-      registerNewEntity(refEntity, refId)
-      fetchSubRef(ref, ...rest)
+    if (isArray(parentObject)) fetchSubRef(ref, ...rest)
+    else {
+      const refId = parentObject[refEntity]
+      if (!entityAlreadyFetched(refEntity, refId)) {
+        registerNewEntity(refEntity, refId)
+        fetchSubRef(ref, ...rest)
+      }
     }
   })
 }
@@ -29,7 +32,7 @@ const fetchSubRefs = (subRefs, ...rest) => {
 */
 fetchSubRef = (ref, ...rest) => {
   // Deconstruct the refs structure to retrieve the fetch promise, the entity to target and the sub structure if present
-  const { func: fetch, entity, refs: subRefs } = ref
+  const { func: fetch, entity, refs: subRefs, batch } = ref
   // The parent object represent the last object fetched
   let parentObject = rest[rest.length - 1]
   // PriorIds is used to give to our fetch func the context as parameters (parcelId, addressId, userId) => ...
@@ -55,14 +58,28 @@ fetchSubRef = (ref, ...rest) => {
     return
   }
 
-  // Launch the fetch for each uniq object
-  parentObject.forEach(object => {
-    const { id: parentId, [entity]: currentId } = object
-    if (!entityAlreadyFetched(entity, currentId)) {
-      registerNewEntity(entity, currentId)
-      fetchEnhanced(parentId, currentId)
-    }
-  })
+  // If batch, we need to give the array of ids to fetchEnhanced
+  if (batch) {
+    const entityIds = []
+    // Launch the fetch for each uniq object
+    parentObject.forEach(object => {
+      const { [entity]: currentId } = object
+      if (!entityAlreadyFetched(entity, currentId)) {
+        registerNewEntity(entity, currentId)
+        entityIds.push(currentId)
+      }
+    })
+    fetchEnhanced(null, entityIds)
+  } else {
+    // Launch the fetch for each uniq object
+    parentObject.forEach(object => {
+      const { id: parentId, [entity]: currentId } = object
+      if (!entityAlreadyFetched(entity, currentId)) {
+        registerNewEntity(entity, currentId)
+        fetchEnhanced(parentId, currentId)
+      }
+    })
+  }
 }
 
 /*
@@ -92,14 +109,13 @@ fetchSubRef = (ref, ...rest) => {
 const fetchRefs = structure => {
   // Deconstruct the refs structure to retrieve the fetch promise, the entity to target and the sub structure if present
   const { func, entity, refs: subRefs } = structure
-
   if (typeof func !== 'function') {
     warning(`the func of entity ${entity} is not a function`)
     return
   }
 
   // Fetch the root result
-  if (subRefs) {
+  if (subRefs && subRefs.length > 0) {
     // Get the result entity
     func().then(({ [entity]: rootObject }) => {
       // Fetch entities for each sub-references

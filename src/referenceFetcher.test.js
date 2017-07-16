@@ -6,15 +6,17 @@ describe('FetchRefs util', () => {
   global.console.error = jest.fn()
 
   const parcels = [
-    { id: 'parcel_01', name: 'parcel_01', address: 'address_01', collect: 'collect_01' },
-    { id: 'parcel_02', name: 'parcel_02', address: 'address_02', collect: 'collect_02' },
-    { id: 'parcel_03', name: 'parcel_03', address: 'address_03', collect: 'collect_02' },
+    { id: 'parcel_01', name: 'parcel_01', address: 'address_01', collect: 'collect_01', stats: 'stats_01' },
+    { id: 'parcel_02', name: 'parcel_02', address: 'address_02', collect: 'collect_02', stats: 'stats_02' },
+    { id: 'parcel_03', name: 'parcel_03', address: 'address_03', collect: 'collect_02', stats: 'stats_03' },
   ]
   const entityFactory = id => ({ id, name: `name_${id}`, org: 'organization_01', user: 'user_02' })
+  const entitiesFactory = ids => ids.map(id => ({ id, name: `name_${id}`, org: 'organization_01', user: 'user_02' }))
   const parcelsPromise = () => new Promise(resolve => resolve({ action: 'getParcel', parcels }))
   const subObjectPromise = (id, entity) => new Promise(resolve => resolve({ action: 'getSmthg',
     [entity]: entityFactory(id) }))
-  const wrongPromiseResolve = () => new Promise(resolve => resolve({ action: 'getParcel', parcels: { } }))
+  const subArrayPromise = (ids, entity) => new Promise(resolve => resolve({ action: 'getSmthg',
+    [entity]: entitiesFactory(ids) }))
 
   const wrongConfig = () => ({
     entity: 'parcels',
@@ -31,38 +33,54 @@ describe('FetchRefs util', () => {
 
   const twoLevelConfig = callback => ({
     entity: 'parcels',
-    func: () => parcelsPromise(),
+    func: parcelsPromise,
     refs: [{
       entity: 'collect',
       func: (parcelId, collectId) => {
         callback([parcelId, collectId])
-        return subObjectPromise(collectId, 'collect', [parcelId, collectId])
+        return subObjectPromise(collectId, 'collect')
       },
     }],
   })
 
   const threeLevelConfig = (callback1, callback2) => ({
     entity: 'parcels',
-    func: () => parcelsPromise(),
+    func: parcelsPromise,
     refs: [{
       entity: 'collect',
-      func: (parcelId, collectId) => subObjectPromise(collectId, 'collect', [parcelId, collectId]),
+      func: (parcelId, collectId) => subObjectPromise(collectId, 'collect'),
     }, {
       entity: 'address',
       func: (parcelId, addressId) => {
         callback1([parcelId, addressId])
-        return subObjectPromise(addressId, 'address', [parcelId, addressId])
+        return subObjectPromise(addressId, 'address')
       },
       refs: [{
         entity: 'org',
-        func: (parcelId, addressId, orgId) => subObjectPromise(orgId, 'org', [parcelId, addressId, orgId]),
+        func: (parcelId, addressId, orgId) => subObjectPromise(orgId, 'org'),
       }, {
         entity: 'user',
         func: (parcelId, addressId, userId) => {
           callback2([parcelId, addressId, userId])
-          return subObjectPromise(userId, 'user', [parcelId, addressId, userId])
+          return subObjectPromise(userId, 'user')
         },
       }],
+    }],
+  })
+
+  const arrayConfig = (callback) => ({
+    entity: 'parcels',
+    func: parcelsPromise,
+    refs: [{
+      entity: 'collect',
+      func: (parcelId, collectId) => subObjectPromise(collectId, 'collect'),
+    }, {
+      entity: 'stats',
+      batch: true,
+      func: (parcelId, statsIds) => {
+        callback([parcelId, statsIds])
+        return subArrayPromise(statsIds, 'stats')
+      },
     }],
   })
 
@@ -113,6 +131,15 @@ describe('FetchRefs util', () => {
     }
 
     fetchRefs(threeLevelConfig(registerCallback1, registerCallback2))
+  })
+  it('Calls sub-func with an array when batch asked', done => {
+    const callback = addressesId => {
+      const uniqStats = uniqWith(parcels.map(parcel => parcel.stats, (a, b) => a[1] === b[1]))
+      expect(uniqStats).toEqual(uniqStats)
+      done()
+    }
+
+    fetchRefs(arrayConfig(callback))
   })
   it('Calls the error function when the func givent is not a function', () => {
     fetchRefs(wrongConfig)
