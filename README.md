@@ -1,6 +1,6 @@
 # Reference-Fetcher
 
-ReferenceFetcher is a simple-to-use JS library to fetch entity reference with a configuration object.
+ReferenceFetcher is a simple-to-use JS library to fetch entity references.
 
 [![Travis Build](https://img.shields.io/travis/wing-eu/reference-fetcher.svg?style=flat-square)](https://travis-ci.org/wing-eu/reference-fetcher/) [![Version](https://img.shields.io/npm/v/reference-fetcher.svg?style=flat-square)](https://github.com/lucmerceron/reference-fetcher/releases) [![Code Coverage](https://img.shields.io/codecov/c/github/wing-eu/reference-fetcher.svg?style=flat-square)](https://codecov.io/gh/wing-eu/reference-fetcher)
 
