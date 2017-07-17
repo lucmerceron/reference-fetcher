@@ -10,7 +10,7 @@ describe('FetchRefs util', () => {
     { id: 'parcel_02', name: 'parcel_02', address: 'address_02', collect: 'collect_02', stats: 'stats_02' },
     { id: 'parcel_03', name: 'parcel_03', address: 'address_03', collect: 'collect_02', stats: 'stats_03' },
   ]
-  const entityFactory = id => ({ id, name: `name_${id}`, org: 'organization_01', user: 'user_02' })
+  const entityFactory = id => ({ id, name: `name_${id}`, org: 'organization_01', user: 'user_02', action: 'action_01' })
   const entitiesFactory = ids => ids.map(id => ({ id, name: `name_${id}`, org: 'organization_01', user: 'user_02' }))
   const parcelsPromise = () => new Promise(resolve => resolve({ action: 'getParcel', parcels }))
   const subObjectPromise = (id, entity) => new Promise(resolve => resolve({ action: 'getSmthg',
@@ -124,6 +124,25 @@ describe('FetchRefs util', () => {
     }],
   })
 
+  const retrieveSubOfAlreadyFetched = (callback) => ({
+    entity: 'parcels',
+    fetch: parcelsPromise,
+    refs: [{
+      entity: 'address',
+      fetch: addressId => subObjectPromise(addressId, 'address'),
+    }, {
+      entity: 'address',
+      fetch: addressId => subObjectPromise(addressId, 'address'),
+      refs: [{
+        entity: 'action', // Even if address has already been fetched, action need to be fetch
+        fetch: actionId => {
+          callback(actionId)
+          return subObjectPromise(actionId, 'action')
+        },
+      }],
+    }],
+  })
+
   it('Calls the fetch with one level of configuration', done => {
     const callback = data => {
       expect(data).toBe('parcels')
@@ -210,6 +229,20 @@ describe('FetchRefs util', () => {
     }
 
     fetchRefs(noCacheConfig(callback1, registerCallback2, registerCallback3))
+  })
+  it('Calls sub-fetch even if parent already fetched', done => {
+    const store = []
+    const callback = () => {
+      expect(store).toEqual(['action_01'])
+      done()
+    }
+    const debounceCallback = debounce(callback, 10)
+    const registerCallback = data => {
+      store.push(data)
+      debounceCallback()
+    }
+
+    fetchRefs(retrieveSubOfAlreadyFetched(registerCallback))
   })
   it('Calls the error fetchtion when the fetch given is not a fetchtion', () => {
     fetchRefs(wrongConfig)
