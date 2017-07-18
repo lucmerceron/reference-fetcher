@@ -28,6 +28,7 @@ describe('FetchRefs util', () => {
   const entityFactory = id => ({ id, name: `name_${id}`, org: 'organization_01', user: 'user_02', action: 'action_01' })
   const entitiesFactory = ids => ids.map(id => ({ id, name: `name_${id}`, org: 'organization_01', user: 'user_02' }))
   const parcelsPromise = () => new Promise(resolve => resolve({ action: 'getParcel', parcels }))
+  const parcelsPromiseSubstitute = () => new Promise(resolve => resolve({ action: 'getParcel', parcels }))
   const subObjectPromise = (id, entity) => new Promise(resolve => resolve({ action: 'getSmthg',
     [entity]: entityFactory(id) }))
   const subArrayPromise = (ids, entity) => new Promise(resolve => resolve({ action: 'getSmthg',
@@ -54,9 +55,12 @@ describe('FetchRefs util', () => {
     },
   })
 
-  const twoLevelConfig = callback => ({
+  const twoLevelConfig = (callback, callbackParcel) => ({
     entity: 'parcels',
-    fetch: parcelsPromise,
+    fetch: () => {
+      callbackParcel()
+      return parcelsPromise()
+    },
     refs: [{
       entity: 'collect',
       fetch: collectId => {
@@ -66,9 +70,12 @@ describe('FetchRefs util', () => {
     }],
   })
 
-  const threeLevelConfig = (callback1, callback2) => ({
+  const threeLevelConfig = (callback1, callback2, callbackParcel) => ({
     entity: 'parcels',
-    fetch: parcelsPromise,
+    fetch: (notTheSame) => {
+      callbackParcel()
+      return parcelsPromise()
+    },
     refs: [{
       entity: 'collect',
       fetch: collectId => subObjectPromise(collectId, 'collect'),
@@ -194,7 +201,11 @@ describe('FetchRefs util', () => {
       store.push(data)
       debounceCallback()
     }
-    fetchRefs(twoLevelConfig(registerCallback))
+    const callbackParcel = jest.fn()
+    fetchRefs(twoLevelConfig(registerCallback, callbackParcel))
+
+    // This test depend on firstLevelConfiguration
+    expect(callbackParcel).not.toBeCalled()
   })
   it('Calls fetch & sub-fetchs with three levels of configuration', done => {
     const store1 = []
@@ -219,7 +230,11 @@ describe('FetchRefs util', () => {
       debounceCallback2()
     }
 
-    fetchRefs(threeLevelConfig(registerCallback1, registerCallback2))
+    const callbackParcel = jest.fn()
+    fetchRefs(threeLevelConfig(registerCallback1, registerCallback2, callbackParcel))
+
+    // This test depend on firstLevelConfiguration
+    expect(callbackParcel).toBeCalled()
   })
   it('Calls sub-fetch with an array when batch asked', done => {
     const callback2 = lastArg => {
