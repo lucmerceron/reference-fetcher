@@ -86,7 +86,7 @@ fetchSubRef = (ref, parentObject) => {
 
   // Fetch should be called as a batch or not
   const fetchEnhancedCall = () => {
-    if (batch) return fetchEnhanced(idsToFetch)
+    if (batch) return [fetchEnhanced(idsToFetch)]
     else return idsToFetch.map(fetchEnhanced)
   }
 

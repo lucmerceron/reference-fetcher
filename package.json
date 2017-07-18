@@ -1,6 +1,6 @@
 {
-  "name": "reference-fetcher",
-  "version": "0.0.0-semantically-released",
+  "name": "reference-fetcher-test",
+  "version": "3.0.3",
   "description": "Simple and easy entity references fetcher",
   "main": "dist/index.js",
   "dependencies": {
