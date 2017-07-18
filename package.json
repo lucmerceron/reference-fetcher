@@ -1,5 +1,5 @@
 {
-  "name": "reference-fetcher-test",
+  "name": "reference-fetcher",
   "version": "3.0.3",
   "description": "Simple and easy entity references fetcher",
   "main": "dist/index.js",
