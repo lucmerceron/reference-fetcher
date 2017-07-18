@@ -107,6 +107,7 @@ describe('FetchRefs util', () => {
       refs: [{
         entity: 'org',
         batch: true,
+        noCache: true,
         fetch: orgs => {
           callback2(orgs)
           return subArrayPromise(orgs, 'orgs')
@@ -229,8 +230,6 @@ describe('FetchRefs util', () => {
     const callback = statsIds => {
       const uniqStats = uniqWith(parcels.map(parcel => parcel.stats), (a, b) => a === b)
       expect(statsIds).toEqual(uniqStats)
-      // Launch callback2 to see if referenceFetcher called it with org or not
-      debounceCallback2(null)
     }
 
     fetchRefs(batchConfig(callback, debounceCallback2))
@@ -243,6 +242,7 @@ describe('FetchRefs util', () => {
     }
     const store3 = []
     const callback3 = () => {
+      // This test depends on previous tests, please be careful
       expect(store3).toEqual([null])
       done()
     }
