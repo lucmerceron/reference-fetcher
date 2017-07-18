@@ -110,7 +110,7 @@ fetchSubRef = (ref, parentObject) => {
       if (values) values.forEach(value => registerNewEntity(entity, value.id, value))
 
       // Continue with underneath references with our fetched and cached values
-      if (subRefs) fetchSubRefs(subRefs, ...[...values, ...alreadyFetched])
+      if (subRefs) fetchSubRefs(subRefs, [...values, ...alreadyFetched])
     }, reason => {
       warning(`the fetch for entity ${entity} returned an error: ${reason}`)
     })
