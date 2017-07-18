@@ -91,7 +91,7 @@ describe('FetchRefs util', () => {
     }],
   })
 
-  const batchConfig = (callback) => ({
+  const batchConfig = (callback, callback2) => ({
     entity: 'parcels',
     fetch: parcelsPromise,
     refs: [{
@@ -104,6 +104,14 @@ describe('FetchRefs util', () => {
         callback(statsIds)
         return subArrayPromise(statsIds, 'stats')
       },
+      refs: [{
+        entity: 'org',
+        batch: true,
+        fetch: orgs => {
+          callback2(orgs)
+          return subArrayPromise(orgs, 'orgs')
+        },
+      }],
     }],
   })
 
@@ -213,13 +221,19 @@ describe('FetchRefs util', () => {
     fetchRefs(threeLevelConfig(registerCallback1, registerCallback2))
   })
   it('Calls sub-fetch with an array when batch asked', done => {
+    const callback2 = lastArg => {
+      expect(lastArg).toEqual(['organization_01'])
+      done()
+    }
+    const debounceCallback2 = debounce(callback2, 100)
     const callback = statsIds => {
       const uniqStats = uniqWith(parcels.map(parcel => parcel.stats), (a, b) => a === b)
       expect(statsIds).toEqual(uniqStats)
-      done()
+      // Launch callback2 to see if referenceFetcher called it with org or not
+      debounceCallback2(null)
     }
 
-    fetchRefs(batchConfig(callback))
+    fetchRefs(batchConfig(callback, debounceCallback2))
   })
   it('Calls sub-fetch with the full array when no-cache asked', done => {
     const callback1 = addressesId => {
