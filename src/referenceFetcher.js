@@ -24,6 +24,10 @@ const enhanceFetch = (fetch, relation, entity, noCache) => id => {
   // already fetched, but does not avoid registering the entity
   if (!entityAlreadyFetched || noCache) {
     return fetch(id).then(({ [entity]: rootObject }) => {
+      if (!rootObject) {
+        warning(`the entity ${entity} does not exist in object(s) ${id}`)
+        return
+      }
       // Transform the object to array for generic usage
       if (!isArray(rootObject) && isObject(rootObject)) {
         rootObject = [rootObject]
