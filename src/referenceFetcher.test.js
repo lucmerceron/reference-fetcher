@@ -2,13 +2,28 @@ import { debounce, uniqWith } from 'lodash'
 import fetchRefs from './referenceFetcher'
 
 describe('FetchRefs util', () => {
-  // Mocking console error fetchtion
+  // Mocking console error function
   global.console.error = jest.fn()
 
   const parcels = [
-    { id: 'parcel_01', name: 'parcel_01', address: 'address_01', collect: 'collect_01', stats: 'stats_01' },
-    { id: 'parcel_02', name: 'parcel_02', address: 'address_02', collect: 'collect_02', stats: 'stats_02' },
-    { id: 'parcel_03', name: 'parcel_03', address: 'address_03', collect: 'collect_02', stats: 'stats_03' },
+    { id: 'parcel_01',
+      name: 'parcel_01',
+      address: 'address_01',
+      collect: 'collect_01',
+      stats: 'stats_01',
+      promFail: 'promFail_01' },
+    { id: 'parcel_02',
+      name: 'parcel_02',
+      address: 'address_02',
+      collect: 'collect_02',
+      stats: 'stats_02',
+      promFail: 'promFail_01' },
+    { id: 'parcel_03',
+      name: 'parcel_03',
+      address: 'address_03',
+      collect: 'collect_02',
+      stats: 'stats_03',
+      promFail: 'promFail_01' },
   ]
   const entityFactory = id => ({ id, name: `name_${id}`, org: 'organization_01', user: 'user_02', action: 'action_01' })
   const entitiesFactory = ids => ids.map(id => ({ id, name: `name_${id}`, org: 'organization_01', user: 'user_02' }))
@@ -20,7 +35,15 @@ describe('FetchRefs util', () => {
 
   const wrongConfig = () => ({
     entity: 'parcels',
-    fetch: 'Not a fetchtion',
+    fetch: 'Not a function',
+  })
+  const promiseErrorConfig = () => ({
+    entity: 'parcels',
+    fetch: parcelsPromise,
+    refs: [{
+      entity: 'promFail',
+      fetch: () => new Promise((resolve, reject) => reject('Error in Promise')),
+    }],
   })
 
   const oneLevelConfig = callback => ({
@@ -244,8 +267,15 @@ describe('FetchRefs util', () => {
 
     fetchRefs(retrieveSubOfAlreadyFetched(registerCallback))
   })
-  it('Calls the error fetchtion when the fetch given is not a fetchtion', () => {
-    fetchRefs(wrongConfig)
-    expect(console.error).toBeCalled()
+  it('Calls the error function when the fetch or sub fetch given is not a function', done => {
+    const callback = () => {
+      expect(console.error).toHaveBeenCalledTimes(2)
+      done()
+    }
+    const debounceCallback = debounce(callback, 10)
+    // Mocking console error function
+    global.console.error = jest.fn().mockImplementation(debounceCallback)
+    fetchRefs(wrongConfig())
+    fetchRefs(promiseErrorConfig())
   })
 })

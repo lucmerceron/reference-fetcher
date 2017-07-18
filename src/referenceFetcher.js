@@ -89,7 +89,6 @@ fetchSubRef = (ref, parentObject) => {
     if (batch) return [fetchEnhanced(idsToFetch)]
     else return idsToFetch.map(fetchEnhanced)
   }
-
   // The user wants to batch call or enjoy HTTP2 parallelization speed
   Promise.all(fetchEnhancedCall()).then(values => {
     if (subRefs) fetchSubRefs(subRefs, ...values)
