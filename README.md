@@ -34,25 +34,25 @@ import referenceFetcher from 'reference-fetcher'
 
 const configuration = {
   entity: 'posts',
-  func: () => getPosts(),
+  fetch: () => getPosts(),
   refs: [{
     entity: 'subreddit',
-    func: subredditId => getSubreddit(subredditId),
+    fetch: subredditId => getSubreddit(subredditId),
   }, {
     entity: 'subscribers',
     relationName: 'creator',
     batch: true,
-    func: subscribersIds => getSubscribers(subscribersIds),
+    fetch: subscribersIds => getSubscribers(subscribersIds),
     refs: [{
       entity: 'stats',
       relationName: 'stat',
       batch: true,
-      func: getStats,
+      fetch: getStats,
     }]
   }, {
     entity: 'tag',
     noCache: true,
-    func: getTag,
+    fetch: getTag,
   }]
 }
 
@@ -92,10 +92,10 @@ const getSubscribers = subscribersId => new Promise((resolve, reject) => {
 
 ### Arguments
 * entity (String): The name that will be used to retrieve data from the Promise result. These data will then be used to retrieve our underneath refs. Omit this argument if your API response contains directly the desired result.
-* func (Promise): The Promise that will be called to get our particular `entity`. func is called with no parameters if it is the root Object (`Post` in our example) or is called multiple times with  a `String` representing the ID to fetch (`getSubreddit` in our example) or is called once with an `Array` of ID to fetch (`getSubscribers` in our example). **The promise must return its results if we want lower refs to work.**
+* fetch (Promise): The Promise that will be called to get our particular `entity`. fetch is called with no parameters if it is the root Object (`Post` in our example) or is called multiple times with  a `String` representing the ID to fetch (`getSubreddit` in our example) or is called once with an `Array` of ID to fetch (`getSubscribers` in our example). **The promise must return its results if we want lower refs to work.**
 * relationName (String): *Only for refs*  The name of the attribute in the parent object where we can find the ID to fetch. Default to `entity`.
-* batch (Boolean): *Only for refs* Default value: false. Set to true if you want your `func`called only once with the array of ID to retrieve.
-* noCache (Boolean): *Only for refs* Default value: false. Set to true if you want to bypass the already fetched watcher. It means that if the entity we want to retrieve was already retrieved earlier, ReferenceFetcher will still call our `func` with the unique IDs it finds in the parent `Object`.
+* batch (Boolean): *Only for refs* Default value: false. Set to true if you want your `fetch`called only once with the array of ID to retrieve.
+* noCache (Boolean): *Only for refs* Default value: false. Set to true if you want to bypass the already fetched watcher. It means that if the entity we want to retrieve was already retrieved earlier, ReferenceFetcher will still call our `fetch` with the unique IDs it finds in the parent `Object`.
 
 ### Returns
 ReferenceFetcher returns nothing, its objective is only to correctly call the different Promises. We need to feed our store directly from the Promises.
