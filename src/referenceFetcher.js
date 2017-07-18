@@ -10,65 +10,29 @@ const getEntity = (entity, id) => {
   if (refsRetrieved[entity] && refsRetrieved[entity][id]) return Object.assign({}, refsRetrieved[entity][id])
   return null
 }
-const getEntities = (entity, ids) => ids.reduce((acc, id) => {
-  if (getEntity(entity, id)) acc.alreadyFetched.push(getEntity(entity, id))
-  else acc.toFetch.push(id)
-  return acc
-}, {
-  alreadyFetched: [],
-  toFetch: [],
-})
+
 const registerNewEntity = (entity, id, value = true) => {
   if (!getEntity(entity, id)) refsRetrieved[entity] = Object.assign({}, refsRetrieved[entity], { [id]: value })
 }
 
 /*
-* enhanceFetch enhance the fetch function with cache management
-* Returns a function taking id to fetch.
+* enhanceFetch enhance the fetch function to check the result
 */
-const enhanceFetch = (fetch, relation, entity, noCache, batch) => id => {
-  let alreadyFetched = []
-  let toFetch = null
+const enhanceFetch = (fetch, entity) => id =>
+  fetch(id).then(({ [entity]: rootObject }) => {
+    if (!rootObject) {
+      warning(`the entity ${entity} does not exist in object ${rootObject}`)
+      return null
+    }
 
-  if (isArray(id)) {
-    const result = getEntities(relation, id)
-    toFetch = result.toFetch
-    if (noCache) toFetch = [...result.alreadyFetched.map(obj => obj.id), ...toFetch]
-    else alreadyFetched = result.alreadyFetched
-  } else {
-    const result = getEntity(relation, id)
-    toFetch = !noCache && result ? null : id
-    alreadyFetched = result ? [result] : []
-  }
-
-
-  // The noCache is used to ask for a fetch call even if entity is
-  // already fetched, but does not avoid registering the entity
-  if (toFetch || (toFetch && toFetch.length > 0)) {
-    return fetch(toFetch).then(({ [entity]: rootObject }) => {
-      if (!rootObject) {
-        warning(`the entity ${entity} does not exist in object ${rootObject}`)
-        return null
-      }
-      // Transform the object to array for generic usage
-      if (!isArray(rootObject) && isObject(rootObject)) {
-        rootObject = [rootObject]
-      }
-      // Register each fetched entities for future usage
-      rootObject.forEach(object => registerNewEntity(entity, object.id, object))
-
-      // Return the rootObject for promise all
-      return [...rootObject, ...alreadyFetched]
-    })
-  } else {
-    return alreadyFetched
-  }
-}
+    // Return the result
+    return rootObject
+  })
 
 /*
 * Function to retrieve a list of uniques ids from the parent relations
 */
-const retrieveIdsToFetch = (parent, relation) =>
+const retrieveUniquesIds = (parent, relation) =>
   parent.reduce((acc, object) => {
     const { [relation]: relationId } = object
     if (!relationId) {
@@ -79,6 +43,22 @@ const retrieveIdsToFetch = (parent, relation) =>
     }
     return acc
   }, [])
+
+/*
+* Function to retrieve the ids to fetch and the objects already fetched
+*/
+const crossIdsWithCache = (entity, ids, noCache) => {
+  // If no cache, do not attempt to check the cache
+  if (noCache) return { idsToFetch: ids, alreadyFetched: [] }
+
+  // Check if already present in cache of not and create the resulting object
+  return ids.reduce((acc, id) => {
+    const inCache = getEntity(entity, id)
+    if (inCache) acc.alreadyFetched.push(inCache)
+    else acc.idsToFetch.push(id)
+    return acc
+  }, { idsToFetch: [], alreadyFetched: [] })
+}
 
 /*
 * fetchSubRefs simply loops on the subRefs array and calls fetchSubRef
@@ -104,23 +84,37 @@ fetchSubRef = (ref, parentObject) => {
     parentObject = [parentObject]
   }
 
-  // Enhance the fetch call with cache management
-  const fetchEnhanced = enhanceFetch(fetch, relation, entity, noCache, batch)
+  // Enhance the fetch call for result verification
+  const fetchEnhanced = enhanceFetch(fetch, entity)
 
   // Retrieve the list of ids to fetch
-  const idsToFetch = retrieveIdsToFetch(parentObject, relation)
+  const uniqIds = retrieveUniquesIds(parentObject, relation)
 
-  // Fetch should be called as a batch or not
-  const fetchEnhancedCall = () => {
-    if (batch) return [fetchEnhanced(idsToFetch)]
-    else return idsToFetch.map(fetchEnhanced)
+  // Filter the list of ids with what ids need to be fetch
+  // and what objects has already been fetched
+  const { idsToFetch, alreadyFetched } = crossIdsWithCache(entity, uniqIds, noCache)
+
+  if (idsToFetch.length === 0) {
+    // If we have nothing to fetch, just continue with underneath references
+    if (subRefs) fetchSubRefs(subRefs, ...alreadyFetched)
+  } else {
+    // Else call the fetch function with the batch of ids or one by one
+    const fetchEnhancedCall = () => {
+      // If we want a batch, only one request is thrown
+      if (batch) return fetchEnhanced(idsToFetch)
+      // Else we need to wait for each request response to go further
+      else return Promise.all(idsToFetch.map(fetchEnhanced))
+    }
+    fetchEnhancedCall().then(values => {
+      // Register the new objects in our cache for future use
+      if (values) values.forEach(value => registerNewEntity(entity, value.id, value))
+
+      // Continue with underneath references with our fetched and cached values
+      if (subRefs) fetchSubRefs(subRefs, ...[...values, ...alreadyFetched])
+    }, reason => {
+      warning(`the fetch for entity ${entity} returned an error: ${reason}`)
+    })
   }
-  // The user wants to batch call or enjoy HTTP2 parallelization speed
-  Promise.all(fetchEnhancedCall()).then(values => {
-    if (subRefs) fetchSubRefs(subRefs, ...values)
-  }, reason => {
-    warning(`the fetch for entity ${entity} returned an error: ${reason}`)
-  })
 }
 
 const fetchRefs = structure => {
