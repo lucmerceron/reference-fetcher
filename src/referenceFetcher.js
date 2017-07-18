@@ -2,7 +2,7 @@ import 'babel-polyfill'
 import { isArray, isObject } from 'lodash'
 import warning from './util/warning'
 
-
+const rootFetchCalled = {}
 const refsRetrieved = {}
 let fetchSubRef = () => {}
 
@@ -123,11 +123,22 @@ const fetchRefs = structure => {
     warning(`the fetch of entity ${entity} is not a function`)
     return
   }
+  // One way to identify surely, without assumption on the name, a function
+  const funcSignature = fetch.toString()
+  // funcResult is present if function already called
+  const funcResult = rootFetchCalled[funcSignature]
 
-  // Fetch the root result
+  // If fetch already called
+  if (funcResult) {
+    if (subRefs && subRefs.length > 0) fetchSubRefs(subRefs, funcResult)
+    return
+  }
+
   if (subRefs && subRefs.length > 0) {
     // Get the result entity
     fetch().then(({ [entity]: rootObject }) => {
+      // Register our fetch result in order to avoid unecessary recall later one
+      rootFetchCalled[funcSignature] = rootObject
       // Fetch entities for each sub-references
       fetchSubRefs(subRefs, rootObject)
     })

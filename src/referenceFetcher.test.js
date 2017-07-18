@@ -34,6 +34,11 @@ describe('FetchRefs util', () => {
   const subArrayPromise = (ids, entity) => new Promise(resolve => resolve({ action: 'getSmthg',
     [entity]: entitiesFactory(ids) }))
 
+  const sameRootFunction = (callback) => {
+    callback()
+    return parcelsPromise()
+  }
+
   const wrongConfig = () => ({
     entity: 'parcels',
     fetch: 'Not a function',
@@ -47,20 +52,14 @@ describe('FetchRefs util', () => {
     }],
   })
 
-  const oneLevelConfig = callback => ({
+  const oneLevelConfig = callbackParcel => ({
     entity: 'parcels',
-    fetch: () => {
-      callback('parcels')
-      return parcelsPromise()
-    },
+    fetch: () => sameRootFunction(callbackParcel),
   })
 
   const twoLevelConfig = (callback, callbackParcel) => ({
     entity: 'parcels',
-    fetch: () => {
-      callbackParcel()
-      return parcelsPromise()
-    },
+    fetch: () => sameRootFunction(callbackParcel),
     refs: [{
       entity: 'collect',
       fetch: collectId => {
@@ -183,17 +182,15 @@ describe('FetchRefs util', () => {
   })
 
   it('Calls the fetch with one level of configuration', done => {
-    const callback = data => {
-      expect(data).toBe('parcels')
-      done()
-    }
-    fetchRefs(oneLevelConfig(callback))
-  })
-  it('Calls fetch & sub-fetch with two levels of configuration', done => {
+    const callbackParcel = jest.fn()
+
     const store = []
     const callback = () => {
       const uniqCollects = uniqWith(parcels.map(parcel => parcel.collect), (a, b) => a === b)
       expect(store).toEqual(uniqCollects)
+      fetchRefs(oneLevelConfig(callbackParcel))
+
+      expect(callbackParcel).toHaveBeenCalledTimes(1)
       done()
     }
     const debounceCallback = debounce(callback, 10)
@@ -201,11 +198,10 @@ describe('FetchRefs util', () => {
       store.push(data)
       debounceCallback()
     }
-    const callbackParcel = jest.fn()
     fetchRefs(twoLevelConfig(registerCallback, callbackParcel))
 
     // This test depend on firstLevelConfiguration
-    expect(callbackParcel).not.toBeCalled()
+    expect(callbackParcel).toHaveBeenCalledTimes(1)
   })
   it('Calls fetch & sub-fetchs with three levels of configuration', done => {
     const store1 = []
