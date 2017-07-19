@@ -137,6 +137,11 @@ const fetchRefs = structure => {
   if (subRefs && subRefs.length > 0) {
     // Get the result entity
     fetch().then(({ [entity]: rootObject }) => {
+      // Verify if the entity attribute actually gave something to work on
+      if (!rootObject) {
+        warning(`the entity ${entity} does not exist in object ${JSON.stringify(rootObject, null, 2)}`)
+        return
+      }
       // Register our fetch result in order to avoid unecessary recall later one
       rootFetchCalled[funcSignature] = rootObject
       // Fetch entities for each sub-references
