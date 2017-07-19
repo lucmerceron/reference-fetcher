@@ -96,7 +96,7 @@ fetchSubRef = (ref, parentObject) => {
 
   if (idsToFetch.length === 0) {
     // If we have nothing to fetch, just continue with underneath references
-    if (subRefs) fetchSubRefs(subRefs, ...alreadyFetched)
+    if (subRefs) fetchSubRefs(subRefs, alreadyFetched)
   } else {
     // Else call the fetch function with the batch of ids or one by one
     const fetchEnhancedCall = () => {

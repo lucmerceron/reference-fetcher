@@ -28,7 +28,6 @@ describe('FetchRefs util', () => {
   const entityFactory = id => ({ id, name: `name_${id}`, org: 'organization_01', user: 'user_02', action: 'action_01' })
   const entitiesFactory = ids => ids.map(id => ({ id, name: `name_${id}`, org: 'organization_01', user: 'user_02' }))
   const parcelsPromise = () => new Promise(resolve => resolve({ action: 'getParcel', parcels }))
-  const parcelsPromiseSubstitute = () => new Promise(resolve => resolve({ action: 'getParcel', parcels }))
   const subObjectPromise = (id, entity) => new Promise(resolve => resolve({ action: 'getSmthg',
     [entity]: entityFactory(id) }))
   const subArrayPromise = (ids, entity) => new Promise(resolve => resolve({ action: 'getSmthg',

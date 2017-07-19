@@ -1,6 +1,6 @@
-/* istanbul ignore next */
 /* eslint-disable */
 export default function warning(message) {
+  /* istanbul ignore else  */
   if (typeof console !== 'undefined' && typeof console.error === 'function') {
     console.error(message)
   }
