@@ -2,9 +2,6 @@ import { debounce, uniqWith } from 'lodash'
 import fetchRefs from './referenceFetcher'
 
 describe('FetchRefs util', () => {
-  // Mocking console error function
-  global.console.error = jest.fn()
-
   const parcels = [
     { id: 'parcel_01',
       name: 'parcel_01',
@@ -46,6 +43,18 @@ describe('FetchRefs util', () => {
     refs: [{
       entity: 'promFail',
       fetch: () => new Promise((resolve, reject) => reject('Error in Promise')),
+    }],
+  })
+  const configWithUnknownRef = debounceCallback => ({
+    entity: 'parcels',
+    fetch: parcelsPromise,
+    refs: [{
+      entity: 'doesNotExist',
+      optional: true,
+      fetch: noId => {
+        debounceCallback()
+        return subObjectPromise(noId)
+      },
     }],
   })
 
@@ -291,7 +300,7 @@ describe('FetchRefs util', () => {
   })
   it('Calls the error function when the fetch or sub fetch given is not a function', done => {
     const callback = () => {
-      expect(console.error).toHaveBeenCalledTimes(2)
+      expect(global.console.error).toHaveBeenCalledTimes(2)
       done()
     }
     const debounceCallback = debounce(callback, 10)
@@ -299,5 +308,15 @@ describe('FetchRefs util', () => {
     global.console.error = jest.fn().mockImplementation(debounceCallback)
     fetchRefs(wrongConfig())
     fetchRefs(promiseErrorConfig())
+  })
+  it('Does not throw errors when the ref is optional', done => {
+    const callback = () => {
+      expect(global.console.error).toHaveBeenCalledTimes(0) // Should not be called 3 times (parcels.length)
+      done()
+    }
+    const debounceCallback = debounce(callback, 10)
+    // Mocking console error function
+    global.console.error = jest.fn().mockImplementation(debounceCallback)
+    fetchRefs(configWithUnknownRef(debounceCallback))
   })
 })
