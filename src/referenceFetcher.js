@@ -16,27 +16,13 @@ const registerNewEntity = (entity, id, value = true) => {
 }
 
 /*
-* enhanceFetch enhance the fetch function to check the result
-*/
-const enhanceFetch = (fetch, entity) => id =>
-  fetch(id).then(({ [entity]: rootObject }) => {
-    if (!rootObject) {
-      warning(`the entity ${entity} does not exist in object ${rootObject}`)
-      return null
-    }
-
-    // Return the result
-    return rootObject
-  })
-
-/*
 * Function to retrieve a list of uniques ids from the parent relations
 */
 const retrieveUniquesIds = (parent, relation) =>
   parent.reduce((acc, object) => {
     const { [relation]: relationId } = object
     if (!relationId) {
-      warning(`the relation ${relation} could not be found in object ${object.id}`)
+      warning(`the relation ${relation} could not be found in object ${object.id}`, true)
     } else if (acc.indexOf(relationId) === -1) {
       // Keep the list unique
       acc.push(relationId)
@@ -84,9 +70,6 @@ fetchSubRef = (ref, parentObject) => {
     parentObject = [parentObject]
   }
 
-  // Enhance the fetch call for result verification
-  const fetchEnhanced = enhanceFetch(fetch, entity)
-
   // Retrieve the list of ids to fetch
   const uniqIds = retrieveUniquesIds(parentObject, relation)
 
@@ -101,9 +84,9 @@ fetchSubRef = (ref, parentObject) => {
     // Else call the fetch function with the batch of ids or one by one
     const fetchEnhancedCall = () => {
       // If we want a batch, only one request is thrown
-      if (batch) return fetchEnhanced(idsToFetch)
+      if (batch) return fetch(idsToFetch)
       // Else we need to wait for each request response to go further
-      else return Promise.all(idsToFetch.map(fetchEnhanced))
+      else return Promise.all(idsToFetch.map(fetch))
     }
     fetchEnhancedCall().then(values => {
       // Register the new objects in our cache for future use
@@ -136,16 +119,16 @@ const fetchRefs = structure => {
 
   if (subRefs && subRefs.length > 0) {
     // Get the result entity
-    fetch().then(({ [entity]: rootObject }) => {
+    fetch().then(result => {
       // Verify if the entity attribute actually gave something to work on
-      if (!rootObject) {
-        warning(`the entity ${entity} does not exist in object ${JSON.stringify(rootObject, null, 2)}`)
+      if (!result) {
+        warning(`the entity ${entity} does not exist in object ${JSON.stringify(result, null, 2)}`)
         return
       }
       // Register our fetch result in order to avoid unecessary recall later one
-      rootFetchCalled[funcSignature] = rootObject
+      rootFetchCalled[funcSignature] = result
       // Fetch entities for each sub-references
-      fetchSubRefs(subRefs, rootObject)
+      fetchSubRefs(subRefs, result)
     })
   } else {
     fetch()
