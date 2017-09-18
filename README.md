@@ -69,13 +69,13 @@ const getPosts = () => new Promise((resolve, reject) => {
     postsStore.push(...response.posts)
     // Return the response allowing to fetch underneath references
     // and chain our promise
-    return response
+    return response.posts
   })
 })
 const getSubreddit = subredditId => new Promise((resolve, reject) => {
   fetch(`${APIURL}/subreddits/${subredditId}`).then(response => {
     subredditsStore.push(response.subreddit)
-    return response
+    return response.subreddit
   })
 })
 const getSubscribers = subscribersId => new Promise((resolve, reject) => {
@@ -85,7 +85,7 @@ const getSubscribers = subscribersId => new Promise((resolve, reject) => {
     body: subscribersId
   }).then(response => {
     subscribersStore.push(...response.subscribers)
-    return response
+    return response.subscribers
   })
 })
 ```
@@ -95,6 +95,7 @@ const getSubscribers = subscribersId => new Promise((resolve, reject) => {
 * fetch (Promise): The Promise that will be called to get our particular `entity`. fetch is called with no parameters if it is the root Object (`Post` in our example) or is called multiple times with  a `String` representing the ID to fetch (`getSubreddit` in our example) or is called once with an `Array` of ID to fetch (`getSubscribers` in our example). **The promise must return its results if we want lower refs to work.**
 * relationName (String): *Only for refs*  The name of the attribute in the parent object where we can find the ID to fetch. Default to `entity`.
 * batch (Boolean): *Only for refs* Default value: false. Set to true if you want your `fetch`called only once with the array of ID to retrieve.
+* optional (Boolean): *Only for refs* Default value: false. Set to true if the entity could not be in the object you fetched.
 * noCache (Boolean): *Only for refs* Default value: false. Set to true if you want to bypass the already fetched watcher. It means that if the entity we want to retrieve was already retrieved earlier, ReferenceFetcher will still call our `fetch` with the unique IDs it finds in the parent `Object`.
 
 ### Returns
