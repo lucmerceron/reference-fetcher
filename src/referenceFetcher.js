@@ -18,10 +18,11 @@ const registerNewEntity = (entity, id, value = true) => {
 /*
 * Function to retrieve a list of uniques ids from the parent relations
 */
-const retrieveUniquesIds = (parent, relation) =>
+const retrieveUniquesIds = (parent, relation, optional = false) =>
   parent.reduce((acc, object) => {
     const { [relation]: relationId } = object
-    if (!relationId) {
+
+    if (!relationId && !optional) {
       warning(`the relation ${relation} could not be found in object ${object.id}`, true)
     } else if (acc.indexOf(relationId) === -1) {
       // Keep the list unique
@@ -61,7 +62,7 @@ const fetchSubRefs = (subRefs, parentObject) => {
 */
 fetchSubRef = (ref, parentObject) => {
   // Deconstruct the refs structure to retrieve the fetch promise, the entity to target and the sub structure if present
-  const { fetch, entity, relationName, refs: subRefs, batch, noCache } = ref
+  const { fetch, entity, relationName, refs: subRefs, batch, noCache, optional } = ref
   // The name of the relation in the parent object
   const relation = relationName || entity
   // If the returned object is not an array,
@@ -71,7 +72,7 @@ fetchSubRef = (ref, parentObject) => {
   }
 
   // Retrieve the list of ids to fetch
-  const uniqIds = retrieveUniquesIds(parentObject, relation)
+  const uniqIds = retrieveUniquesIds(parentObject, relation, optional)
 
   // Filter the list of ids with what ids need to be fetch
   // and what objects has already been fetched
