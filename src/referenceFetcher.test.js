@@ -45,16 +45,13 @@ describe('FetchRefs util', () => {
       fetch: () => new Promise((resolve, reject) => reject('Error in Promise')),
     }],
   })
-  const configWithUnknownRef = debounceCallback => ({
+  const configWithUnknownRef = () => ({
     entity: 'parcels',
     fetch: parcelsPromise,
     refs: [{
       entity: 'doesNotExist',
       optional: true,
-      fetch: noId => {
-        debounceCallback()
-        return subObjectPromise(noId)
-      },
+      fetch: noId => subObjectPromise(noId),
     }],
   })
 
@@ -314,9 +311,11 @@ describe('FetchRefs util', () => {
       expect(global.console.error).toHaveBeenCalledTimes(0) // Should not be called 3 times (parcels.length)
       done()
     }
-    const debounceCallback = debounce(callback, 10)
+    const debounceCallback = debounce(callback, 100)
     // Mocking console error function
     global.console.error = jest.fn().mockImplementation(debounceCallback)
-    fetchRefs(configWithUnknownRef(debounceCallback))
+    fetchRefs(configWithUnknownRef())
+    // Calling debounceCallback as to start the debouncing
+    debounceCallback()
   })
 })
