@@ -27,11 +27,9 @@ describe('FetchRefs util', () => {
   ]
   const entityFactory = id => ({ id, name: `name_${id}`, org: 'organization_01', user: 'user_02', action: 'action_01' })
   const entitiesFactory = ids => ids.map(id => ({ id, name: `name_${id}`, org: 'organization_01', user: 'user_02' }))
-  const parcelsPromise = () => new Promise(resolve => resolve({ action: 'getParcel', parcels }))
-  const subObjectPromise = (id, entity) => new Promise(resolve => resolve({ action: 'getSmthg',
-    [entity]: entityFactory(id) }))
-  const subArrayPromise = (ids, entity) => new Promise(resolve => resolve({ action: 'getSmthg',
-    [entity]: entitiesFactory(ids) }))
+  const parcelsPromise = () => new Promise(resolve => resolve(parcels))
+  const subObjectPromise = id => new Promise(resolve => resolve(entityFactory(id)))
+  const subArrayPromise = ids => new Promise(resolve => resolve(entitiesFactory(ids)))
 
   const sameRootFunction = (callback) => {
     callback()
@@ -63,7 +61,7 @@ describe('FetchRefs util', () => {
       entity: 'collect',
       fetch: collectId => {
         callback(collectId)
-        return subObjectPromise(collectId, 'collect')
+        return subObjectPromise(collectId)
       },
     }],
   })
@@ -76,21 +74,21 @@ describe('FetchRefs util', () => {
     },
     refs: [{
       entity: 'collect',
-      fetch: collectId => subObjectPromise(collectId, 'collect'),
+      fetch: collectId => subObjectPromise(collectId),
     }, {
       entity: 'address',
       fetch: addressId => {
         callback1(addressId)
-        return subObjectPromise(addressId, 'address')
+        return subObjectPromise(addressId)
       },
       refs: [{
         entity: 'org',
-        fetch: orgId => subObjectPromise(orgId, 'org'),
+        fetch: orgId => subObjectPromise(orgId),
       }, {
         entity: 'user',
         fetch: userId => {
           callback2(userId)
-          return subObjectPromise(userId, 'user')
+          return subObjectPromise(userId)
         },
       }],
     }],
@@ -101,13 +99,13 @@ describe('FetchRefs util', () => {
     fetch: parcelsPromise,
     refs: [{
       entity: 'collect',
-      fetch: collectId => subObjectPromise(collectId, 'collect'),
+      fetch: collectId => subObjectPromise(collectId),
     }, {
       entity: 'stats',
       batch: true,
       fetch: statsIds => {
         callback(statsIds)
-        return subArrayPromise(statsIds, 'stats')
+        return subArrayPromise(statsIds)
       },
       refs: [{
         entity: 'org',
@@ -115,7 +113,7 @@ describe('FetchRefs util', () => {
         noCache: true,
         fetch: orgs => {
           callback2(orgs)
-          return subArrayPromise(orgs, 'orgs')
+          return subArrayPromise(orgs)
         },
       }],
     }],
@@ -126,7 +124,7 @@ describe('FetchRefs util', () => {
     fetch: parcelsPromise,
     refs: [{
       entity: 'address',
-      fetch: addressId => subObjectPromise(addressId, 'address'),
+      fetch: addressId => subObjectPromise(addressId),
     }, {
       entity: 'addresses',
       relationName: 'address',
@@ -134,14 +132,14 @@ describe('FetchRefs util', () => {
       noCache: true,
       fetch: addressesIds => {
         callback1(addressesIds)
-        return subArrayPromise(addressesIds, 'addresses')
+        return subArrayPromise(addressesIds)
       },
       refs: [{
         entity: 'address',
         noCache: true,
         fetch: addressId => {
           callback3(addressId)
-          return subObjectPromise(addressId, 'address')
+          return subObjectPromise(addressId)
         },
       }],
     }, {
@@ -149,14 +147,14 @@ describe('FetchRefs util', () => {
       noCache: true,
       fetch: addressId => {
         callback2(addressId)
-        return subObjectPromise(addressId, 'address')
+        return subObjectPromise(addressId)
       },
     }, {
       entity: 'address',
       // noCache: true,
       fetch: addressId => { // Should not be called as already fetched
         callback3(addressId)
-        return subObjectPromise(addressId, 'address')
+        return subObjectPromise(addressId)
       },
     }],
   })
@@ -166,15 +164,15 @@ describe('FetchRefs util', () => {
     fetch: parcelsPromise,
     refs: [{
       entity: 'address',
-      fetch: addressId => subObjectPromise(addressId, 'address'),
+      fetch: addressId => subObjectPromise(addressId),
     }, {
       entity: 'address',
-      fetch: addressId => subObjectPromise(addressId, 'address'),
+      fetch: addressId => subObjectPromise(addressId),
       refs: [{
         entity: 'action', // Even if address has already been fetched, action need to be fetch
         fetch: actionId => {
           callback(actionId)
-          return subObjectPromise(actionId, 'action')
+          return subObjectPromise(actionId)
         },
       }],
     }],
