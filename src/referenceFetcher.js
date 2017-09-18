@@ -21,10 +21,9 @@ const registerNewEntity = (entity, id, value = true) => {
 const retrieveUniquesIds = (parent, relation, optional = false) =>
   parent.reduce((acc, object) => {
     const { [relation]: relationId } = object
-
     if (!relationId && !optional) {
       warning(`the relation ${relation} could not be found in object ${object.id}`, true)
-    } else if (acc.indexOf(relationId) === -1) {
+    } else if (acc.indexOf(relationId) === -1 && typeof relationId !== 'undefined') {
       // Keep the list unique
       acc.push(relationId)
     }
