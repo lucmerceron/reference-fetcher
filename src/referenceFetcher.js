@@ -1,4 +1,4 @@
-import 'babel-polyfill'
+// import 'babel-polyfill'
 import { isArray, isObject } from 'lodash'
 import warning from './util/warning'
 
@@ -88,12 +88,15 @@ fetchSubRef = (ref, parentObject) => {
       // Else we need to wait for each request response to go further
       else return Promise.all(idsToFetch.map(fetch))
     }
-    fetchEnhancedCall().then(values => {
+    Promise.resolve(fetchEnhancedCall()).then(values => {
+      // If the fetch did not returned values, warn the client
+      if (!values) warning(`the fetch for entity ${entity} returned no values`)
+
       // Register the new objects in our cache for future use
       if (values) values.forEach(value => registerNewEntity(entity, value.id, value))
 
       // Continue with underneath references with our fetched and cached values
-      if (subRefs) fetchSubRefs(subRefs, [...values, ...alreadyFetched])
+      if (values && subRefs) fetchSubRefs(subRefs, [...values, ...alreadyFetched])
     }, reason => {
       warning(`the fetch for entity ${entity} returned an error: ${reason}`)
     })
