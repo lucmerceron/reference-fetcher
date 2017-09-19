@@ -23,7 +23,7 @@ const retrieveUniquesIds = (parent, relation, optional = false) =>
     const { [relation]: relationId } = object
     if (!relationId && !optional) {
       warning(`the relation ${relation} could not be found in object ${object.id}`, true)
-    } else if (acc.indexOf(relationId) === -1 && typeof relationId !== 'undefined') {
+    } else if (acc.indexOf(relationId) === -1 && relationId != null) {
       // Keep the list unique
       acc.push(relationId)
     }
