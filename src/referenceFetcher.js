@@ -104,18 +104,19 @@ fetchSubRef = (ref, parentObject) => {
 }
 
 const fetchRefs = structure => {
-  const { fetch, entity, refs: subRefs } = structure
+  const { fetch, entity, refs: subRefs, rootNoCache = false } = structure
   if (typeof fetch !== 'function') {
     warning(`the fetch of entity ${entity} is not a function`)
     return
   }
   // One way to identify surely, without assumption on the name, a function
   const funcSignature = fetch.toString()
+
   // funcResult is present if function already called
   const funcResult = rootFetchCalled[funcSignature]
 
   // If fetch already called
-  if (funcResult) {
+  if (funcResult && !rootNoCache) {
     if (subRefs && subRefs.length > 0) fetchSubRefs(subRefs, funcResult)
     return
   }
