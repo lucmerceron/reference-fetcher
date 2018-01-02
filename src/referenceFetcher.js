@@ -94,7 +94,7 @@ fetchSubRef = (ref, parentObject) => {
       if (!values) warning(`the fetch for entity ${entity} returned no values`)
 
       // Register the new objects in our cache for future use
-      if (values) values.forEach(value => registerNewEntity(entity, value.id, value))
+      if (values && isArray(values)) values.forEach(value => registerNewEntity(entity, value.id, value))
 
       // Search for and register ids that wasn't retrieved
       idsToFetch.forEach(id => {

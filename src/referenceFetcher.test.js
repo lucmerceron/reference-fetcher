@@ -1,4 +1,4 @@
-import { debounce, uniqWith } from 'lodash'
+import { debounce, uniqWith, uniq } from 'lodash'
 import fetchRefs from './referenceFetcher'
 
 describe('FetchRefs util', () => {
@@ -43,6 +43,19 @@ describe('FetchRefs util', () => {
     refs: [{
       entity: 'promFail',
       fetch: () => new Promise((resolve, reject) => reject('Error in Promise')),
+    }],
+  })
+  const promiseErrorReturn = callback => ({
+    entity: 'parcels',
+    fetch: parcelsPromise,
+    noCache: true,
+    refs: [{
+      entity: 'promFail',
+      batch: true,
+      fetch: ids => {
+        callback(ids)
+        return new Promise((resolve, reject) => resolve('Error in Promise'))
+      },
     }],
   })
   const configWithUnknownRef = () => ({
@@ -317,5 +330,21 @@ describe('FetchRefs util', () => {
     fetchRefs(configWithUnknownRef())
     // Calling debounceCallback as to start the debouncing
     debounceCallback()
+  })
+  it('Does not recall the sub-fetch function with the same ids if it wasn\'t returned in the previous fetch', done => {
+    const store = []
+    const callback = () => {
+      expect(uniq(store).length === store.length).toBeTruthy()
+      done()
+    }
+    const debounceCallback = debounce(callback, 100)
+    fetchRefs(promiseErrorReturn(ids => {
+      store.push(...ids)
+      debounceCallback()
+    }))
+    setTimeout(() => fetchRefs(promiseErrorReturn(ids => {
+      store.push(...ids)
+      debounceCallback()
+    })), 10)
   })
 })
