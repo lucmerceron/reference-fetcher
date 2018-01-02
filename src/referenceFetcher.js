@@ -1,9 +1,10 @@
 // import 'babel-polyfill'
-import { isArray, isObject } from 'lodash'
+import { isArray, isObject, findIndex } from 'lodash'
 import warning from './util/warning'
 
 const rootFetchCalled = {}
 const refsRetrieved = {}
+const idsFailed = []
 let fetchSubRef = () => {}
 
 const getEntity = (entity, id) => {
@@ -37,11 +38,11 @@ const crossIdsWithCache = (entity, ids, noCache) => {
   // If no cache, do not attempt to check the cache
   if (noCache) return { idsToFetch: ids, alreadyFetched: [] }
 
-  // Check if already present in cache of not and create the resulting object
+  // Check if already present in cache or in failed ids and create the resulting object
   return ids.reduce((acc, id) => {
     const inCache = getEntity(entity, id)
     if (inCache) acc.alreadyFetched.push(inCache)
-    else acc.idsToFetch.push(id)
+    else if (idsFailed.indexOf(id) === -1) acc.idsToFetch.push(id)
     return acc
   }, { idsToFetch: [], alreadyFetched: [] })
 }
@@ -95,6 +96,11 @@ fetchSubRef = (ref, parentObject) => {
       // Register the new objects in our cache for future use
       if (values) values.forEach(value => registerNewEntity(entity, value.id, value))
 
+      // Search for and register ids that wasn't retrieved
+      idsToFetch.forEach(id => {
+        if (findIndex(values, { id }) === -1 && idsFailed.indexOf(id) === -1) idsFailed.push(id)
+      })
+
       // Continue with underneath references with our fetched and cached values
       if (values && subRefs) fetchSubRefs(subRefs, [...values, ...alreadyFetched])
     }, reason => {
@@ -129,6 +135,7 @@ const fetchRefs = structure => {
         warning(`the entity ${entity} does not exist in object ${JSON.stringify(result, null, 2)}`)
         return
       }
+
       // Register our fetch result in order to avoid unecessary recall later one
       rootFetchCalled[funcSignature] = result
       // Fetch entities for each sub-references
