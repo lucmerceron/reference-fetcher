@@ -34,7 +34,7 @@
   "scripts": {
     "lint": "eslint ./src",
     "commit": "git-cz",
-    "check-coverage": "istanbul check-coverage --statements 90 --branches 85 --functions 90 --lines 90",
+    "check-coverage": "istanbul check-coverage --statements 90 --branches 85 --functions 85 --lines 90",
     "report-coverage": "cat ./coverage/lcov.info | codecov",
     "test": "jest",
     "test:watch": "jest --watch",

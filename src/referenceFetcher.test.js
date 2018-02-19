@@ -197,6 +197,31 @@ describe('FetchRefs util', () => {
     }],
   })
 
+  const retrieveSidesWithFetchedEntities = (callback) => ({
+    entity: 'parcels',
+    fetch: parcelsPromise,
+    sides: [{
+      entity: 'comments',
+      fetch: prclsIds => {
+        callback(prclsIds)
+        return subArrayPromise(prclsIds)
+      },
+    }],
+    refs: [{
+      entity: 'addresses',
+      relationName: 'address',
+      batch: true,
+      fetch: addressesId => subArrayPromise(addressesId),
+      sides: [{
+        entity: 'localities',
+        fetch: addrsIds => {
+          callback(addrsIds)
+          return subArrayPromise(addrsIds)
+        },
+      }],
+    }],
+  })
+
   it('Calls the fetch with one level of configuration', done => {
     const callbackParcel = jest.fn()
 
@@ -346,5 +371,22 @@ describe('FetchRefs util', () => {
       store.push(...ids)
       debounceCallback()
     })), 10)
+  })
+  it('Calls sides fetch function with parent result', done => {
+    const store = []
+    const callback = () => {
+      expect(store).toContain('address_01')
+      expect(store).toContain('address_02')
+      expect(store).toContain('address_03')
+      expect(store).toContain('parcel_01')
+      expect(store).toContain('parcel_02')
+      expect(store).toContain('parcel_03')
+      done()
+    }
+    const debounceCallback = debounce(callback, 200)
+    fetchRefs(retrieveSidesWithFetchedEntities(ids => {
+      store.push(...ids)
+      debounceCallback()
+    }))
   })
 })
