@@ -103,7 +103,7 @@ const getSubscribers = subscribersId => new Promise((resolve, reject) => {
 * optional (Boolean): *Only for refs* Default value: false. Set to true if the entity could not be in the object you fetched.
 * noCache (Boolean): *Only for refs* Default value: false. Set to true if you want to bypass the already fetched watcher. It means that if the entity we want to retrieve was already retrieved earlier, ReferenceFetcher will still call our `fetch` with the unique IDs it finds in the parent `Object`.
 * rootNoCache (Boolean): *Only for root* Default value: false. Set to true if you want to bypass the caching on the root fetch. It means that if we call our referenceFetcher with the same root fetch function, it will recall it each time we call the referenceFetcher
-* sides (Array): An array composed of object of type: `({ entity: string, fetch: function })`. Used to fetch entities that are not linked to a parent. Will use the cache.
+* sides (Array): An array composed of object of type: `({ entity: string, fetch: function })`. Used to fetch entities that are not linked to a parent. Fetch will be called with the result of the parent fetch function. Will use the cache.
 
 ### Returns
 ReferenceFetcher returns nothing, its objective is only to correctly call the different Promises. We need to feed our store directly from the Promises.
